@@ -2,9 +2,8 @@
 # vim: set filetype=yaml.ansible :
 ---
 - name: install unzip
-  ansible.builtin.package:
-    name: unzip
-    state: present
+  ansible.builtin.import_tasks:
+    file: unzip.yml
 
 - name: Create pingtunnel user
   ansible.builtin.user:

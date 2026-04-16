@@ -1,0 +1,22 @@
+# code: language=ansible
+# vim: set filetype=yaml.ansible :
+---
+- name: Install unzip (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: unzip
+    state: present
+    update_cache: yes
+  when: ansible_facts["os_family"] == "Debian"
+
+- name: Install unzip (RHEL/CentOS/Fedora)
+  ansible.builtin.dnf:
+    name: unzip
+    state: present
+  when: ansible_facts["os_family"] == "RedHat"
+
+- name: Install unzip (Alpine)
+  community.general.apk:
+    name: unzip
+    state: present
+    update_cache: yes
+  when: ansible_facts["distribution"] == "Alpine"
