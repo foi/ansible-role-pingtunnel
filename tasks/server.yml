@@ -1,0 +1,11 @@
+# code: language=ansible
+# vim: set filetype=yaml.ansible :
+---
+- name: "render systemd service file"
+  ansible.builtin.template:
+    src: server.service.ini.j2
+    dest: "/etc/systemd/system/{{ pingtunnel_server_service_name }}.service"
+    mode: '0644'
+  notify:
+    - restart pingtunnel server
+    - enable pingtunnel server

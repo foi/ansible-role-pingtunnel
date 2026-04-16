@@ -1,0 +1,15 @@
+# code: language=ansible
+# vim: set filetype=yaml.ansible :
+---
+- name: configure pingtunnel server
+  when:
+    - pingtunnel_server_install
+  ansible.builtin.include_tasks:
+    file: server.yml
+
+- name: configure pingtunnel clients
+  when:
+    - pingtunnel_clients.keys() | length > 0
+  ansible.builtin.include_tasks:
+    file: clients.yml
+  loop: "{{ pingtunnel_clients.keys() }}"

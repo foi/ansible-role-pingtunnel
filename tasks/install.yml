@@ -1,0 +1,34 @@
+# code: language=ansible
+# vim: set filetype=yaml.ansible :
+---
+- name: install unzip
+  ansible.builtin.package:
+    name: unzip
+    state: present
+
+- name: Create pingtunnel user
+  ansible.builtin.user:
+    name: "{{ pingtunnel_user }}"
+    shell: "{{ '/usr/sbin/nologin' if ansible_facts['os_family'] == 'RedHat' else '/sbin/nologin' }}"
+    system: true
+    create_home: false
+
+- name: download release
+  ansible.builtin.uri:
+    url: "{{ pingtunnel_install_url }}"
+    dest: "{{ pingtunnel_install_tmp_path }}"
+    creates: "{{ pingtunnel_install_tmp_path }}"
+    mode: '0644'
+
+- name: unarchive
+  ansible.builtin.unarchive:
+    src: "{{ pingtunnel_install_tmp_path }}"
+    dest: /usr/local/bin
+    creates: /usr/local/bin/pingtunnel
+    mode: '0755'
+    include:
+      - pingtunnel
+    remote_src: true
+  notify:
+    - restart pingtunnel server
+    - enable pingtunnel server

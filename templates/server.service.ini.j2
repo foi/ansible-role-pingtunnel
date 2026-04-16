@@ -1,0 +1,28 @@
+[Unit]
+Description=pingtunnel server
+Documentation=https://github.com/esrrhs/pingtunnel
+{% if pingtunnel_unit_options is defined and pingtunnel_unit_options.items() | length > 0 %}
+{% for k, v in pingtunnel_unit_options.items() %}
+{{ k }}={{ v }}
+{% endfor %}
+{% else %}
+{% for k, v in pingtunnel_default_unit_options.items() %}
+{{ k }}={{ v }}
+{% endfor %}
+{% endif %}
+
+[Service]
+User={{ pingtunnel_user }}
+ExecStart=/usr/local/bin/pingtunnel -type server {{ pingtunnel_server_options | join(' ') }}
+{% if pingtunnel_service_options is defined and pingtunnel_service_options.items() | length > 0 %}
+{% for k, v in pingtunnel_service_options.items() %}
+{{ k }}={{ v }}
+{% endfor %}
+{% else %}
+{% for k, v in pingtunnel_default_service_options.items() %}
+{{ k }}={{ v }}
+{% endfor %}
+{% endif %}
+
+[Install]
+WantedBy=default.target

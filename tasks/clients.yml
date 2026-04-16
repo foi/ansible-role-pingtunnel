@@ -1,0 +1,25 @@
+# code: language=ansible
+# vim: set filetype=yaml.ansible :
+---
+- name: "render systemd service file"
+  ansible.builtin.template:
+    src: client.service.ini.j2
+    dest: "/etc/systemd/system/{{ item }}.service"
+    mode: '0644'
+  register: pingtunnel_client_result
+
+- name: Enable & Restart pingtunnel clients # noqa: no-handler
+  when: pingtunnel_client_result.changed
+  block:
+
+    - name: Enable pingtunnel client
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        daemon_reload: true
+        enabled: true
+
+    - name: Restart pingtunnel client
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        daemon_reload: true
+        state: restarted

@@ -1,0 +1,14 @@
+# code: language=ansible
+# vim: set filetype=yaml.ansible :
+---
+- name: enable pingtunnel server
+  ansible.builtin.systemd:
+    name: "{{ pingtunnel_server_service_name }}"
+    daemon_reload: true
+    enabled: true
+
+- name: restart pingtunnel server
+  ansible.builtin.systemd:
+    name: "{{ pingtunnel_server_service_name }}"
+    daemon_reload: true
+    state: restarted
