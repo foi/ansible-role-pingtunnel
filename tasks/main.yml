@@ -7,7 +7,7 @@
   ansible.builtin.import_tasks:
     file: install.yml
 
-- name: Install
+- name: Configure
   tags:
     - pingtunnel-install
     - pingtunnel-configure
