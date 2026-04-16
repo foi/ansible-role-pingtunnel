@@ -26,11 +26,7 @@ and run `ansible-galaxy install -r requirements.yml`
 
 Role Variables
 --------------
-role defaults:
 ```yml
-# code: language=ansible
-# vim: set filetype=yaml.ansible :
----
 pingtunnel_install_url: https://github.com/esrrhs/pingtunnel/releases/download/master-ec0bd723f675ccbb3ab0f680b3fe5f09d5c69795/pingtunnel_linux_amd64.zip
 pingtunnel_install_tmp_path: "/tmp/pingtunnel.zip"
 pingtunnel_server_service_name: pingtunnel-server
