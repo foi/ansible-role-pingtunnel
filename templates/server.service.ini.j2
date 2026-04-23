@@ -12,7 +12,6 @@ Documentation=https://github.com/esrrhs/pingtunnel
 {% endif %}
 
 [Service]
-User={{ pingtunnel_user }}
 ExecStart=/usr/local/bin/pingtunnel -type server {{ pingtunnel_server_options | join(' ') }}
 {% if pingtunnel_service_options is defined and pingtunnel_service_options.items() | length > 0 %}
 {% for k, v in pingtunnel_service_options.items() %}
