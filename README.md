@@ -8,7 +8,7 @@ Compatibility
 --------------
 
 python: 3.12, 3.13, 3.14
-ansible: 12, 13
+ansible: 12, 13, 14
 
 Install
 --------------
@@ -27,7 +27,7 @@ and run `ansible-galaxy install -r requirements.yml`
 Role Variables
 --------------
 ```yml
-pingtunnel_install_url: https://github.com/esrrhs/pingtunnel/releases/download/master-2f75aea1924d47f975aeddf7527302622149b2ea/pingtunnel_linux_amd64.zip
+pingtunnel_install_url: https://github.com/esrrhs/pingtunnel/releases/download/2.10/pingtunnel_linux_amd64.zip
 pingtunnel_install_tmp_path: "/tmp/pingtunnel.zip"
 pingtunnel_server_service_name: pingtunnel-server
 # pingtunnel_server_options:
