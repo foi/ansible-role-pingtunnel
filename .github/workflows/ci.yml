@@ -24,19 +24,27 @@ jobs:
           yamllint .
 
   molecule:
-    name: Molecule
+    name: Molecule (Python ${{ matrix.python }}, Ansible ${{ matrix.ansible }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
+      fail-fast: false
       matrix:
-        python:
-          - 3.14
-          - 3.13
-          - 3.12
-        ansible:
-          - 13
-          - 12
-        os:
-          - debian13
+        include:
+          - python: '3.12'
+            ansible: '14'
+          - python: '3.13'
+            ansible: '15'
+          - python: '3.14'
+            ansible: '15'
+          - python: '3.15'
+            ansible: '15'
+    env:
+      PY_COLORS: '1'
+      ANSIBLE_FORCE_COLOR: '1'
+      PYTHON_VERSION: ${{ matrix.python }}
+      ANSIBLE_VERSION: ${{ matrix.ansible }}
+      OS_VERSION: debian13
     steps:
       - name: Check out the codebase.
         uses: actions/checkout@v6
@@ -47,16 +55,15 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Install test dependencies.
-        run: pip3 install ansible>=${{ matrix.ansible }} molecule molecule-plugins[docker] docker
+        run: |
+          # Replace the development Ansible pin with the compatible matrix version.
+          sed '/^ansible==/d' requirements.in > "$RUNNER_TEMP/molecule-requirements.txt"
+          python -m pip install -r "$RUNNER_TEMP/molecule-requirements.txt" "ansible==${{ matrix.ansible }}.*"
 
-      - name: Install rsync
-        run: sudo apt update -y && sudo apt install -y rsync
+      - name: Install rsync.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rsync
 
       - name: Run Molecule tests.
         run: molecule test
-        env:
-          PY_COLORS: '1'
-          ANSIBLE_FORCE_COLOR: '1'
-          PYTHON_VERSION: ${{ matrix.python }}
-          ANSIBLE_VERSION: ${{ matrix.ansible }}
-          OS_VERSION: ${{ matrix.os }}

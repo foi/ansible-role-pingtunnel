@@ -1,0 +1,21 @@
+# code: language=ansible
+# vim: set filetype=yaml.ansible :
+---
+- name: "check platform and configuration format"
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['system'] == 'Linux'
+      - ansible_facts['service_mgr'] == 'systemd'
+      - pingtunnel_configs is mapping
+    fail_msg: >-
+      This role requires Linux/systemd and pingtunnel_configs (a mapping of names
+      to native pingtunnel 3.1 JSON configs).
+
+- name: "check config names"
+  ansible.builtin.assert:
+    that:
+      - item is string
+      - item is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+      - not item.endswith('.json')
+    fail_msg: Config names must be safe basenames without a path or .json extension.
+  loop: "{{ pingtunnel_configs.keys() | list }}"

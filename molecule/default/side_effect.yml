@@ -1,0 +1,84 @@
+# code: language=ansible
+# vim: set filetype=yaml.ansible :
+---
+- name: Check instance lifecycle
+  hosts: all
+  vars_files:
+    - "{{ lookup('ansible.builtin.env', 'MOLECULE_SCENARIO_DIRECTORY') }}/vars/main.yml"
+  tasks:
+    - name: "save original configs"
+      ansible.builtin.set_fact:
+        pingtunnel_test_original_configs: "{{ pingtunnel_configs }}"
+      no_log: true
+
+    - name: "record instance invocation IDs"
+      ansible.builtin.command:
+        argv: [systemctl, show, --property=InvocationID, --value, "pingtunnel@{{ item }}.service"]
+      loop: [server, udp]
+      register: pingtunnel_test_before
+      changed_when: false
+
+    - name: "change only UDP config"
+      ansible.builtin.set_fact:
+        pingtunnel_configs: "{{ pingtunnel_configs | combine({'udp': pingtunnel_configs.udp | combine({'timeout': 30})}) }}"
+      no_log: true
+
+    - name: "apply changed config"
+      ansible.builtin.include_role:
+        name: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+
+    - name: "record updated invocation IDs"
+      ansible.builtin.command:
+        argv: [systemctl, show, --property=InvocationID, --value, "pingtunnel@{{ item }}.service"]
+      loop: [server, udp]
+      register: pingtunnel_test_after
+      changed_when: false
+
+    - name: "check only the changed instance restarted"
+      ansible.builtin.assert:
+        that:
+          - pingtunnel_test_before.results[0].stdout | length > 0
+          - pingtunnel_test_before.results[0].stdout == pingtunnel_test_after.results[0].stdout
+          - pingtunnel_test_before.results[1].stdout != pingtunnel_test_after.results[1].stdout
+
+    - name: "restore original configs"
+      ansible.builtin.set_fact:
+        pingtunnel_configs: "{{ pingtunnel_test_original_configs }}"
+      no_log: true
+
+    - name: "apply original configs"
+      ansible.builtin.include_role:
+        name: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+
+    - name: "stop the UDP instance"
+      ansible.builtin.systemd_service:
+        name: pingtunnel@udp.service
+        state: stopped
+
+    - name: "recover the stopped instance without changing configs"
+      ansible.builtin.include_role:
+        name: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+
+    - name: "check invalid config is rejected"
+      block:
+        - name: "set an invalid password"
+          ansible.builtin.set_fact:
+            pingtunnel_configs: "{{ pingtunnel_configs | combine({'udp': pingtunnel_configs.udp | combine({'password': 'short'})}) }}"
+          no_log: true
+
+        - name: "attempt invalid configuration"
+          ansible.builtin.include_role:
+            name: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+      rescue:
+        - name: "record validation failure"
+          ansible.builtin.set_fact:
+            pingtunnel_test_invalid_rejected: true
+      always:
+        - name: "restore config variables"
+          ansible.builtin.set_fact:
+            pingtunnel_configs: "{{ pingtunnel_test_original_configs }}"
+          no_log: true
+
+    - name: "assert invalid input failed before changing the config file"
+      ansible.builtin.assert:
+        that: pingtunnel_test_invalid_rejected | default(false)

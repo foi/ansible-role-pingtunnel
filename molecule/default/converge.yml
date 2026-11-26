@@ -3,7 +3,9 @@
 ---
 - name: Converge
   hosts: all
+  vars_files:
+    - "{{ lookup('ansible.builtin.env', 'MOLECULE_SCENARIO_DIRECTORY') }}/vars/main.yml"
   tasks:
     - name: "include pingtunnel role"
       ansible.builtin.include_role:
-        name: "{{ lookup('env', 'GITHUB_WORKSPACE') }}"
+        name: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}"

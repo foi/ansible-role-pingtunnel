@@ -1,0 +1,15 @@
+[Unit]
+Description=pingtunnel instance %i
+Documentation=https://github.com/esrrhs/pingtunnel
+{% for k, v in (pingtunnel_default_unit_options | combine(pingtunnel_unit_options | default({}))).items() %}
+{{ k }}={{ v }}
+{% endfor %}
+
+[Service]
+ExecStart="{{ pingtunnel_binary_path }}" -c "{{ pingtunnel_config_path }}/%i.json"
+{% for k, v in (pingtunnel_default_service_options | combine(pingtunnel_service_options | default({}))).items() %}
+{{ k }}={{ v }}
+{% endfor %}
+
+[Install]
+WantedBy=multi-user.target

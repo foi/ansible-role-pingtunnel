@@ -1,0 +1,85 @@
+# code: language=ansible
+# vim: set filetype=yaml.ansible :
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  vars_files:
+    - "{{ lookup('ansible.builtin.env', 'MOLECULE_SCENARIO_DIRECTORY') }}/vars/main.yml"
+  tasks:
+    - name: "read installed version"
+      ansible.builtin.command:
+        argv: [/usr/local/bin/pingtunnel, -version]
+      register: pingtunnel_test_version
+      changed_when: false
+
+    - name: "check installed binary"
+      ansible.builtin.assert:
+        that:
+          - "'3.1' in pingtunnel_test_version.stdout"
+
+    - name: "inspect rendered configs"
+      ansible.builtin.stat:
+        path: "/etc/pingtunnel/{{ item }}.json"
+      loop: "{{ pingtunnel_configs.keys() | list }}"
+      register: pingtunnel_test_config_stats
+
+    - name: "check config permissions"
+      ansible.builtin.assert:
+        that:
+          - item.stat.mode == '0640'
+          - item.stat.pw_name == 'root'
+          - item.stat.gr_name == 'pingtunnel'
+      loop: "{{ pingtunnel_test_config_stats.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: "read rendered JSON"
+      ansible.builtin.slurp:
+        src: "/etc/pingtunnel/{{ item }}.json"
+      loop: "{{ pingtunnel_configs.keys() | list }}"
+      register: pingtunnel_test_config_contents
+      no_log: true
+
+    - name: "check JSON matches variables"
+      ansible.builtin.assert:
+        that:
+          - item.content | b64decode | from_json == pingtunnel_configs[item.item]
+      loop: "{{ pingtunnel_test_config_contents.results }}"
+      no_log: true
+
+    - name: "get service facts"
+      ansible.builtin.service_facts:
+
+    - name: "check template instances"
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['pingtunnel@' ~ item ~ '.service'].state == 'running'
+      loop: "{{ pingtunnel_configs.keys() | list }}"
+
+    - name: "check instance autostart"
+      ansible.builtin.command:
+        argv: [systemctl, is-enabled, "pingtunnel@{{ item }}.service"]
+      loop: "{{ pingtunnel_configs.keys() | list }}"
+      register: pingtunnel_test_enabled
+      changed_when: false
+      failed_when: pingtunnel_test_enabled.rc != 0 or pingtunnel_test_enabled.stdout != 'enabled'
+
+    - name: "verify UDP payload through the ICMP tunnel"
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/python3
+          - -c
+          - |
+            import socket
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                sock.settimeout(10)
+                payload = b'pingtunnel-3.1-UDP-smoke-test'
+                sock.sendto(payload, ('127.0.0.1', 19001))
+                data, _ = sock.recvfrom(65535)
+                assert data == payload, data
+      changed_when: false
+      register: pingtunnel_test_udp
+      until: pingtunnel_test_udp.rc == 0
+      retries: 3
+      delay: 2

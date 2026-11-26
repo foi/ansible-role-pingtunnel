@@ -1,15 +1,44 @@
 # code: language=ansible
 # vim: set filetype=yaml.ansible :
 ---
-- name: configure pingtunnel server
-  when:
-    - pingtunnel_server_install
-  ansible.builtin.include_tasks:
-    file: server.yml
+- name: "create config directory"
+  ansible.builtin.file:
+    path: "{{ pingtunnel_config_path }}"
+    state: directory
+    owner: root
+    group: "{{ pingtunnel_user }}"
+    mode: '0750'
 
-- name: configure pingtunnel clients
-  when:
-    - pingtunnel_clients.keys() | length > 0
-  ansible.builtin.include_tasks:
-    file: clients.yml
-  loop: "{{ pingtunnel_clients.keys() }}"
+- name: "write JSON configs"
+  ansible.builtin.copy:
+    content: "{{ pingtunnel_configs[item] | to_nice_json(indent=2) }}\n"
+    dest: "{{ pingtunnel_config_path }}/{{ item }}.json"
+    owner: root
+    group: "{{ pingtunnel_user }}"
+    mode: '0640'
+  loop: "{{ pingtunnel_configs.keys() | list }}"
+  register: pingtunnel_config_results
+  no_log: true
+  diff: false
+
+- name: "render systemd template unit"
+  ansible.builtin.template:
+    src: pingtunnel@.service.j2
+    dest: /etc/systemd/system/pingtunnel@.service
+    owner: root
+    group: root
+    mode: '0644'
+  register: pingtunnel_unit_result
+
+- name: "enable and apply pingtunnel instances"
+  ansible.builtin.systemd_service:
+    name: "pingtunnel@{{ item }}.service"
+    daemon_reload: true
+    enabled: true
+    state: >-
+      {{ 'restarted' if (
+          (pingtunnel_binary_result | default({})).get('changed', false) or
+          pingtunnel_unit_result.changed or
+          item in (pingtunnel_config_results.results | selectattr('changed') | map(attribute='item') | list)
+         ) else 'started' }}
+  loop: "{{ pingtunnel_configs.keys() | list }}"

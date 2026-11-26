@@ -1,27 +1,31 @@
 # code: language=ansible
 # vim: set filetype=yaml.ansible :
 ---
-pingtunnel_install_url: https://github.com/esrrhs/pingtunnel/releases/download/2.10/pingtunnel_linux_amd64.zip
-pingtunnel_install_tmp_path: "/tmp/pingtunnel.zip"
-pingtunnel_server_service_name: pingtunnel-server
-# pingtunnel_server_options:
-#   - -key 982
-#   - -nolog 1
-pingtunnel_server_options: []
-pingtunnel_server_install: true
-# pingtunnel_clients:
-#   pingtunnel-client:
-#     options:
-#       - -key 982
-#       - -l :11000
-#       - -s 1.1.1.1
-#       - -t 1.1.1.1:11000
-#       - -nolog 1
-pingtunnel_clients: {}
+pingtunnel_version: '3.1'
+pingtunnel_architecture: "{{ {'x86_64': 'amd64', 'aarch64': 'arm64', 'armv7l': 'arm', 'armv6l': 'arm', 'i386': '386', 'i686': '386'}.get(ansible_facts['architecture'], ansible_facts['architecture']) }}"
+pingtunnel_install_url: "https://github.com/esrrhs/pingtunnel/releases/download/{{ pingtunnel_version }}/pingtunnel_linux_{{ pingtunnel_architecture }}.zip"
+pingtunnel_tmp_path: /tmp
+pingtunnel_install_tmp_path: "{{ pingtunnel_tmp_path }}/pingtunnel-{{ pingtunnel_version }}-linux-{{ pingtunnel_architecture }}.zip"
+pingtunnel_extract_path: "{{ pingtunnel_tmp_path }}/{{ pingtunnel_version }}-{{ pingtunnel_architecture }}"
+pingtunnel_binary_path: /usr/local/bin/pingtunnel
+# Official GitHub release asset digests. Override the checksum for custom builds.
+pingtunnel_release_checksums:
+  '3.1':
+    amd64: sha256:1688cbf062f9173c7810292d0bea80c86839dbe0a8afbbe7711d0c2b38888332
+    arm64: sha256:acab6a364aa0ef5155dda97e2462b57ec91022fb58843cb5a93f893f70488c30
+    arm: sha256:018de24c56197f9e3735ede2d00293e586541e62698201dc0398c9070e08a4fd
+    '386': sha256:199f4a172f3c93e7d3b016506dd46fa5d065ab9bf8bea3d35206b297f9077b87
+pingtunnel_install_checksum: "{{ pingtunnel_release_checksums.get(pingtunnel_version, {}).get(pingtunnel_architecture, '') }}"
+pingtunnel_config_path: /etc/pingtunnel
+# Each key is a config basename and a systemd instance: server -> pingtunnel@server.
+# Each value is a native pingtunnel 3.1 JSON configuration (use Vault for passwords).
+pingtunnel_configs: {}
 pingtunnel_user: pingtunnel
 pingtunnel_default_unit_options:
   Wants: network-online.target
   After: network-online.target
+  StartLimitBurst: 30
+  StartLimitIntervalSec: 30
 pingtunnel_default_service_options:
   User: "{{ pingtunnel_user }}"
   Restart: always
@@ -40,7 +44,6 @@ pingtunnel_default_service_options:
   RestrictRealtime: true
   ProtectClock: true
   RestartSec: 10
-  StartLimitBurst: 30
-  StartLimitIntervalSec: 30
+  NoNewPrivileges: true
   AmbientCapabilities: CAP_NET_RAW
   CapabilityBoundingSet: CAP_NET_RAW

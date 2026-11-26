@@ -1,6 +1,12 @@
 # code: language=ansible
 # vim: set filetype=yaml.ansible :
 ---
+- name: Validate
+  tags:
+    - always
+  ansible.builtin.import_tasks:
+    file: validate.yml
+
 - name: Install
   tags:
     - pingtunnel-install

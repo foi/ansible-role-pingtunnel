@@ -1,0 +1,19 @@
+# code: language=ansible
+# vim: set filetype=yaml.ansible :
+---
+pingtunnel_configs:
+  server:
+    type: server
+    password: molecule-test-password
+    icmp_listen: 127.0.0.2
+    nolog: true
+    loglevel: warn
+  udp:
+    type: client
+    password: molecule-test-password
+    server: 127.0.0.2
+    listen: 127.0.0.1:19001
+    target: 127.0.0.1:19002
+    udp: true
+    nolog: true
+    loglevel: warn

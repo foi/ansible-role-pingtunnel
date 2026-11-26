@@ -1,0 +1,34 @@
+# code: language=ansible
+# vim: set filetype=yaml.ansible :
+---
+- name: Prepare UDP echo target
+  hosts: all
+  tasks:
+    - name: "write UDP echo server"
+      ansible.builtin.copy:
+        dest: /usr/local/bin/pingtunnel-test-echo.py
+        mode: '0644'
+        content: |
+          import socket
+          sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+          sock.bind(('127.0.0.1', 19002))
+          while True:
+              data, peer = sock.recvfrom(65535)
+              sock.sendto(data, peer)
+
+    - name: "write UDP echo unit"
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/pingtunnel-test-echo.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=UDP echo target for pingtunnel tests
+          [Service]
+          ExecStart=/usr/bin/python3 /usr/local/bin/pingtunnel-test-echo.py
+          Restart=always
+
+    - name: "start UDP echo target"
+      ansible.builtin.systemd_service:
+        name: pingtunnel-test-echo.service
+        state: started
+        daemon_reload: true

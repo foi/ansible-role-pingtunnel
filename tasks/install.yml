@@ -1,33 +1,58 @@
 # code: language=ansible
 # vim: set filetype=yaml.ansible :
 ---
-- name: install unzip
+- name: "install unzip"
   ansible.builtin.import_tasks:
     file: unzip.yml
 
-- name: Create pingtunnel user
+- name: "create pingtunnel group"
+  ansible.builtin.group:
+    name: "{{ pingtunnel_user }}"
+    system: true
+
+- name: "create pingtunnel user"
   ansible.builtin.user:
     name: "{{ pingtunnel_user }}"
-    shell: "{{ '/usr/sbin/nologin' if ansible_facts['os_family'] == 'RedHat' else '/sbin/nologin' }}"
+    group: "{{ pingtunnel_user }}"
+    shell: /usr/sbin/nologin
     system: true
     create_home: false
 
-- name: download release
-  ansible.builtin.uri:
+- name: "create release cache directory"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ pingtunnel_extract_path }}"
+
+- name: "download release"
+  ansible.builtin.get_url:
     url: "{{ pingtunnel_install_url }}"
     dest: "{{ pingtunnel_install_tmp_path }}"
-    creates: "{{ pingtunnel_install_tmp_path }}"
+    checksum: "{{ pingtunnel_install_checksum or omit }}"
+    owner: root
+    group: root
     mode: '0644'
 
-- name: unarchive
+- name: "extract release"
   ansible.builtin.unarchive:
     src: "{{ pingtunnel_install_tmp_path }}"
-    dest: /usr/local/bin
-    creates: /usr/local/bin/pingtunnel
+    dest: "{{ pingtunnel_extract_path }}"
     mode: '0755'
     include:
       - pingtunnel
     remote_src: true
-  notify:
-    - restart pingtunnel server
-    - enable pingtunnel server
+
+# Replace the executable atomically, then restart affected instances.
+- name: "install pingtunnel binary"
+  ansible.builtin.copy:
+    src: "{{ pingtunnel_extract_path }}/pingtunnel"
+    dest: "{{ pingtunnel_binary_path }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0755'
+  register: pingtunnel_binary_result
