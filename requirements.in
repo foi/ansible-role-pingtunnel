@@ -1,6 +1,8 @@
-ansible==13.4.0
+ansible==15.0.0
 ansible-lint
 yamllint
 netaddr
 paramiko
-molecule-plugins[docker]
+molecule[docker]
+jmespath
+paramiko

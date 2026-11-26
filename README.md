@@ -14,8 +14,14 @@ Install
 ansible-galaxy role install foi.pingtunnel
 ```
 
-Docker is needed only for Molecule testing. The deployed service runs directly
-on the managed Linux/systemd host.
+or add it in `requirements.yml`
+
+```
+roles:
+  - name: foi.pingtunnel
+```
+
+and run `ansible-galaxy install -r requirements.yml`
 
 Example
 -------
