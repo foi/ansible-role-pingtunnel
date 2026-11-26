@@ -3,6 +3,6 @@ ansible-lint
 yamllint
 netaddr
 paramiko
-molecule[docker]
+molecule-plugins[docker]
 jmespath
 paramiko
