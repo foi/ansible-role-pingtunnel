@@ -3,7 +3,8 @@
 ---
 - name: Validate
   tags:
-    - always
+    - pingtunnel-install
+    - pingtunnel-configure
   ansible.builtin.import_tasks:
     file: validate.yml
 
